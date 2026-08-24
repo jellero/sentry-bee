@@ -1,0 +1,15 @@
+Ref,Function,Preferred part,Qty,Notes
+U1,MCU,STM32U535 512KB variant,1,Cortex-M33; choose package after routing
+U2,LTE modem,SIMCom SIM7672E EU LTE Cat-1 bis SKU,1,Verify exact EU bands and current hardware design guide
+U3,Vibration sensor,ST LIS2DW12,1,Prefer small mechanically-coupled daughterboard
+U4,Temperature/humidity,Sensirion SHT40,1,Remote/vented sensing area
+U5,Microphone,TDK T5838,1,PDM digital MEMS microphone
+U6,External flash,16-32MB QSPI NOR,1,Choose automotive/industrial-temp part if budget allows
+U7,3.3V regulator,Low-Iq buck or buck-boost,1,Size from MCU/sensors and battery range
+U8,Modem regulator,High-current buck/buck-boost,1,Size from SIMCom peak-current requirements
+J1,SIM,eSIM or nano-SIM holder,1,ESD protection required
+J2,LTE antenna,50-ohm LTE antenna/connector,1,Match enclosure and EU bands
+D1,Input protection,TVS diode,1,Outdoor cable surge protection
+Q1,Modem load switch/load control,Power MOSFET or load switch,1,Allow hard modem power cycle
+B1,Battery,LiFePO4 pack TBD,1,Size after measured field energy
+P1,Solar,Panel TBD,1,Size from winter field measurements
