@@ -87,7 +87,10 @@ int sb_telemetry_json(char *dst, size_t dst_len, const char *hive_id,
 
 bool sb_sht40_read(const sb_platform_t *p, float *temperature_c, float *humidity_rh);
 bool sb_lis2dw12_init_800hz(const sb_platform_t *p);
+bool sb_lis2dw12_init_800hz_fifo(const sb_platform_t *p, uint8_t threshold_samples);
 bool sb_lis2dw12_read_xyz(const sb_platform_t *p, int16_t xyz[3]);
+bool sb_lis2dw12_fifo_count(const sb_platform_t *p, uint8_t *count, bool *overrun);
+size_t sb_lis2dw12_read_fifo(const sb_platform_t *p, int16_t (*xyz)[3], size_t capacity);
 bool sb_sim7672_basic_check(const sb_platform_t *p);
 bool sb_sim7672_wait_network(const sb_platform_t *p, uint32_t timeout_ms);
 bool sb_sim7672_get_rssi(const sb_platform_t *p, int16_t *rssi_dbm);
