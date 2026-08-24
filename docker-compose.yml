@@ -1,0 +1,27 @@
+services:
+  mqtt:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./deploy/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      SB_MQTT_HOST: mqtt
+      SB_MQTT_PORT: 1883
+      SB_DB_PATH: /data/sentry-bee.db
+    depends_on:
+      - mqtt
+    ports:
+      - "8000:8000"
+    volumes:
+      - api-data:/data
+
+volumes:
+  mosquitto-data:
+  api-data:
