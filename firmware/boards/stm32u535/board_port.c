@@ -61,11 +61,7 @@ static void board_delay_ms(uint32_t ms) {
 }
 
 void sb_board_gpio_safe_state(void) {
-    /* The external modem rail must default OFF at boot/reset. */
     HAL_GPIO_WritePin(SB_MODEM_VBAT_EN_PORT, SB_MODEM_VBAT_EN_PIN, GPIO_PIN_RESET);
-
-    /* High on this MCU-side signal turns the external transistor ON and pulls
-       SIM7672 PWRKEY low. Keep it inactive by default. */
     HAL_GPIO_WritePin(SB_MODEM_PWRKEY_PORT, SB_MODEM_PWRKEY_PIN, GPIO_PIN_RESET);
 }
 
@@ -116,10 +112,12 @@ float sb_board_read_battery_v(void) {
 }
 
 static int64_t days_from_civil(int y, unsigned m, unsigned d) {
-    y -= m <= 2U;
+    y -= (m <= 2U) ? 1 : 0;
     const int era = (y >= 0 ? y : y - 399) / 400;
     const unsigned yoe = (unsigned)(y - era * 400);
-    const unsigned doy = (153U * (m + (m > 2U ? (unsigned)-3 : 9U)) + 2U) / 5U + d - 1U;
+    const int mi = (int)m;
+    const unsigned mp = (unsigned)(mi + (mi > 2 ? -3 : 9));
+    const unsigned doy = (153U * mp + 2U) / 5U + d - 1U;
     const unsigned doe = yoe * 365U + yoe / 4U - yoe / 100U + doy;
     return (int64_t)era * 146097LL + (int64_t)doe - 719468LL;
 }
