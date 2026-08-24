@@ -1,15 +1,26 @@
 Ref,Function,Preferred part,Qty,Notes
-U1,MCU,STM32U535 512KB variant,1,Cortex-M33; choose package after routing
-U2,LTE modem,SIMCom SIM7672E EU LTE Cat-1 bis SKU,1,Verify exact EU bands and current hardware design guide
-U3,Vibration sensor,ST LIS2DW12,1,Prefer small mechanically-coupled daughterboard
-U4,Temperature/humidity,Sensirion SHT40,1,Remote/vented sensing area
-U5,Microphone,TDK T5838,1,PDM digital MEMS microphone
-U6,External flash,16-32MB QSPI NOR,1,Choose automotive/industrial-temp part if budget allows
-U7,3.3V regulator,Low-Iq buck or buck-boost,1,Size from MCU/sensors and battery range
-U8,Modem regulator,High-current buck/buck-boost,1,Size from SIMCom peak-current requirements
-J1,SIM,eSIM or nano-SIM holder,1,ESD protection required
-J2,LTE antenna,50-ohm LTE antenna/connector,1,Match enclosure and EU bands
-D1,Input protection,TVS diode,1,Outdoor cable surge protection
-Q1,Modem load switch/load control,Power MOSFET or load switch,1,Allow hard modem power cycle
-B1,Battery,LiFePO4 pack TBD,1,Size after measured field energy
-P1,Solar,Panel TBD,1,Size from winter field measurements
+U1,MCU,STM32U535RET6,1,LQFP64 512KB non-SMPS/LDO variant
+U2,LTE modem,SIMCom SIM7672E EU LTE Cat-1 bis,1,Use EU SKU with B20 and B28 where available
+U3,Vibration sensor,ST LIS2DW12TR,1,Mount on mechanically coupled daughterboard; I2C + INT1
+U4,Temperature/humidity,Sensirion SHT40,1,Remote/vented sensing area; I2C address 0x44
+U5,Microphone,TDK T5838,1,PDM MEMS; PB3/PB4 ADF1; protect acoustic port
+U6,External flash,Winbond W25Q128JV,1,16MB 3V3 QSPI NOR on OCTOSPI1
+U7,3V3 buck-boost,TI TPS63900,1,Low-Iq rail for MCU sensors flash microphone
+U8,3V8 modem buck-boost,TI TPS63070,1,Set 3.8V; validate thermal/transient margin at cold battery
+U9,Modem load switch,TI TPS22965-Q1,1,4A low-Ron controlled modem VBAT switch
+U10,UART level translator,TI TXU0202DCUR,1,Opposite-direction 1.8V/3.3V translator for SIM7672 MAIN_UART
+Q1,PWRKEY pull-down,2N7002 or equivalent small N-MOS,1,Pull SIM7672 PWRKEY low; MCU never drives it directly
+Y1,RTC crystal,32.768kHz crystal TBD,1,Choose CL/ESR then calculate load capacitors
+J1,SIM,nano-SIM holder,1,ESD protection required; eSIM later after carrier choice
+J2,LTE RF connector,u.FL/I-PEX MHF compatible,1,External qualified LTE antenna for rev A
+J3,Programming,Tag-Connect/SWD footprint,1,SWDIO SWCLK NRST GND 3V3
+J4,USB service,USB-C or test pads device-only,1,Optional rev-A service/DFU interface
+D1,Input TVS,TVS selected for battery/solar connector,1,Outdoor cable transient protection
+D2,SIM ESD,Low-capacitance SIM ESD array,1,Select against SIMCom reference design
+D3,USB ESD,Low-capacitance USB2 ESD array,1,Only if USB assembled
+R1,Battery divider high,1.0M 1%,1,PA0 battery monitor
+R2,Battery divider low,330k 1%,1,PA0 battery monitor
+Cbat,Battery ADC filter,100nF X7R,1,At PA0
+B1,Battery,1S LiFePO4 pack TBD,1,Capacity after measured duty-cycle and winter solar budget
+P1,Solar panel,Panel TBD,1,Size after measured field consumption
+U11,Solar/LiFePO4 charger,Charger TBD,1,Freeze after battery capacity panel Voc and required MPPT behavior are selected

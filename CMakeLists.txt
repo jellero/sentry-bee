@@ -20,6 +20,11 @@ add_executable(sentry_bee_host firmware/src/main_host.c)
 target_link_libraries(sentry_bee_host PRIVATE sentry_bee_core)
 
 enable_testing()
+
 add_executable(test_features firmware/tests/test_features.c)
 target_link_libraries(test_features PRIVATE sentry_bee_core)
 add_test(NAME features COMMAND test_features)
+
+add_executable(test_drivers firmware/tests/test_drivers.c)
+target_link_libraries(test_drivers PRIVATE sentry_bee_core)
+add_test(NAME drivers COMMAND test_drivers)
