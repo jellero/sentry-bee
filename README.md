@@ -29,13 +29,16 @@ The LIS2DW12 should be on a small mechanically coupled daughterboard fixed to th
 ## Repository layout
 
 - `firmware/` portable firmware core, drivers and host-side tests.
+- `backend/` MQTT ingestion service, SQLite storage, REST API and event labeling.
+- `deploy/` local broker configuration.
 - `docs/ARCHITECTURE.md` state machine, sampling and anomaly strategy.
 - `docs/HARDWARE.md` electrical/mechanical design rules and power budget.
 - `docs/PROTOCOL.md` MQTT topics and payloads.
 - `docs/BRINGUP.md` prototype bring-up sequence.
+- `docs/REFERENCES.md` component and research references.
 - `hardware/BOM.csv` initial engineering BOM.
 
-## Firmware status
+## Firmware
 
 The repository contains an executable host model of the v1 pipeline plus hardware-facing drivers that are independent from STM32Cube HAL. The board-specific layer must implement the callbacks in `platform.h` and connect them to STM32U535 HAL/LL, DMA, RTC, QSPI and UART peripherals.
 
@@ -48,6 +51,35 @@ ctest --test-dir build --output-on-failure
 ./build/sentry_bee_host
 ```
 
+The host simulation builds a stable baseline and then injects a correlated temperature/vibration/audio event so the complete feature and anomaly path can be exercised without hardware.
+
+## Development backend
+
+A minimal end-to-end development stack is included:
+
+```bash
+docker compose up --build
+```
+
+It starts:
+
+- Mosquitto development broker on port `1883`;
+- FastAPI backend on port `8000`;
+- persistent SQLite telemetry/event storage.
+
+Useful development endpoints:
+
+```text
+GET  /health
+GET  /api/hives
+GET  /api/hives/{hive_id}/latest
+GET  /api/hives/{hive_id}/history
+GET  /api/events
+POST /api/events/{event_id}/label
+```
+
+The included Mosquitto configuration is intentionally marked **development only**. Production deployment must enable TLS, per-device credentials and ACLs.
+
 ## Detection model in v1
 
 The first firmware does **not** claim to classify queen loss or swarming with a pretrained universal model. It computes robust observable features and an adaptive baseline per hive:
@@ -56,13 +88,17 @@ The first firmware does **not** claim to classify queen loss or swarming with a 
 - vibration RMS, peak, crest factor and energy in configurable bands;
 - audio RMS, zero-crossing rate and band energies;
 - fused anomaly score;
-- event persistence and severity.
+- event severity.
 
-This is intentional: production thresholds/models must be trained from labelled data collected on real hives, climates and seasons.
+This is intentional: production thresholds/models must be trained from labelled data collected on real hives, climates and seasons. The backend therefore supports explicit event labeling from day one.
 
 ## Connectivity policy
 
 Normal operation buffers summaries locally and powers LTE only for scheduled uploads. A high-confidence event can trigger an immediate upload. If LTE is unavailable, records remain queued in QSPI and are retried later. No 2G fallback is required by the application.
+
+## Current boundary
+
+The portable core, sensor register drivers, SIM registration/RSSI driver, telemetry format, backend and CI are present. The next hardware-specific step is the STM32U535 BSP/CubeMX project: clock tree, PDM DMA, LIS2DW12 acquisition DMA/FIFO, QSPI persistence, UART DMA and SIM7672E MQTT/TLS command state machine. Those pieces depend on the final schematic/pinout and must not be fabricated before the board interface is frozen.
 
 ## License
 
