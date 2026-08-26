@@ -1,8 +1,10 @@
-# Sentry-Bee v1 pinout
+# Sentry-Bee rev-A R&D/reference pinout
+
+> **Status:** R&D/reference board. This direct-sensor pinout is retained for lab acquisition and correlation testing. The current product direction is documented in `docs/PRODUCT_ARCHITECTURE.md` and uses ready-made RS-485 T/RH + vibration probes plus analog audio over the field cable.
 
 Target MCU: **STM32U535RET6**, LQFP64, 512 KB flash, LDO variant.
 
-The goal is to keep the first custom board routable, debuggable and cheap while preserving all required functions: LTE, PDM audio, vibration, temperature/RH, external event storage and battery telemetry.
+The goal of this board is to keep a directly instrumented reference platform with LTE, PDM audio, vibration, temperature/RH, external event storage and battery telemetry. It is no longer the preferred production field wiring architecture.
 
 ## Frozen pin assignment
 
@@ -55,8 +57,8 @@ SWD is mandatory on every board revision. Do not reclaim PA13/PA14. USB is optio
 ## Clock plan
 
 - LSE: 32.768 kHz crystal for RTC and long-term scheduling.
-- HSE: not required for v1; use internal oscillators/PLL.
+- HSE: not required for rev-A; use internal oscillators/PLL.
 - high-performance mode: up to 160 MHz only during DSP, flash operations and bursts of work.
 - low-power mode: reduce system clock aggressively between acquisition windows.
 
-The exact CubeMX clock tree must keep ADF1 and OCTOSPI kernel clocks inside the device limits and must be validated on the final PCB.
+The exact CubeMX clock tree must keep ADF1 and OCTOSPI kernel clocks inside the device limits and must be validated on the reference PCB.
