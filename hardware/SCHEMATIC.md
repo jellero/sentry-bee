@@ -1,6 +1,8 @@
-# Sentry-Bee v1 schematic design rules
+# Sentry-Bee rev-A R&D/reference schematic design rules
 
-This document freezes the electrical architecture for the first custom board. It is intentionally specific enough to enter schematic capture without inventing power-domain or logic-level details later.
+> **Status:** R&D/reference board. This document freezes the earlier direct-sensor electrical architecture used for lab acquisition and comparison. It is **not** the current product-v2 field architecture. See `docs/PRODUCT_ARCHITECTURE.md`, `docs/HARDWARE.md`, `hardware/BOM.csv` and `hardware/COSTING.md` for the current direction using RS-485 T/RH + vibration probes and analog audio over cable.
+
+This reference board remains intentionally specific enough to reproduce a known acquisition platform for sensor correlation testing.
 
 ## 1. MCU
 
@@ -86,7 +88,7 @@ Translator rails:
 - 100 nF at each translator supply pin;
 - OE default state must not back-power the modem.
 
-Route RTS/CTS pads to test points even if v1 firmware starts with TX/RX only. If sustained large transfers later need hardware flow control, they can be enabled in rev B without changing the modem footprint.
+Route RTS/CTS pads to test points even if rev-A firmware starts with TX/RX only. If sustained large transfers later need hardware flow control, they can be enabled in a later reference revision without changing the modem footprint.
 
 ## 5. SIM interface
 
@@ -151,7 +153,7 @@ TDK T5838:
 
 ## 10. External event storage
 
-Use **W25Q128JV (16 MB)** or equivalent qualified 3V3 QSPI NOR for rev A.
+Use **W25Q128JV (16 MB)** or equivalent qualified 3V3 QSPI NOR for the reference board.
 
 OCTOSPI1 mapping is frozen in `PINOUT.md`.
 
