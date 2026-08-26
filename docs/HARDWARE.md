@@ -1,110 +1,186 @@
-# Hardware design v1
+# Hardware design
 
-## Core components
+## Product-v2 field architecture
 
-### MCU — STM32U535
+The preferred product architecture uses one external main unit and simple hive-side sensors over a shielded cable up to approximately 5 m.
 
-Use a STM32U535 variant with enough flash for secure boot/OTA growth; 512 KB is the current design target. Required peripherals:
+```text
+HIVE SIDE                               MAIN UNIT
 
-- I2C for SHT40 and LIS2DW12 during prototype stage;
-- preferably SPI for LIS2DW12 on the production board if bus robustness/throughput warrants it;
-- PDM/SAI/DFSDM-capable path for T5838 microphone capture;
+RS-485 T/RH probe ---------------------> RS-485
+RS-485 vibration probe ----------------> STM32U535
+analog microphone + preamp -----------> ADC/DMA + DSP
+                                         QSPI
+                                         SIM7672E LTE
+                                         LiFePO4 + solar
+```
+
+The older direct-sensor STM32 board using LIS2DW12/SHT40/T5838 is retained as an R&D/reference platform. Its pinout and schematic files remain in `hardware/` for correlation testing.
+
+## MCU — STM32U535RET6
+
+The current main-board target is STM32U535RET6, LQFP64, 512 KB.
+
+Product-v2 required peripherals:
+
+- UART or equivalent serial peripheral for RS-485/Modbus RTU;
+- ADC + DMA for analog audio;
 - UART with DMA for SIM7672E;
 - QSPI/OSPI for external NOR;
 - RTC/LPTIM for low-power scheduling;
+- ADC for battery/rail monitoring;
 - SWD test pads.
+
+The product-v2 main board no longer requires long external I2C/SPI/PDM sensor wiring.
 
 ## LTE — SIM7672E
 
-Use the exact EU LTE Cat-1 bis SKU and verify supported bands with the distributor/manufacturer before PCB freeze. The application requires LTE operation and does not depend on GSM/2G fallback.
+Use the exact EU LTE Cat-1 bis SKU and verify bands before PCB/order freeze. The application requires LTE operation and does not depend on GSM/2G fallback.
 
-### Power integrity
+### LTE power integrity
 
-Do not power the modem from a weak MCU rail. Give it a dedicated high-current buck/rail with low-ESR bulk capacitance placed according to the SIMCom hardware design guide. LTE current pulses determine regulator sizing and PCB copper, not average consumption.
+Give the modem a dedicated 3.8-V high-current rail with low-ESR bulk capacitance and layout derived from the current SIMCom hardware design guide. LTE current pulses determine regulator sizing and PCB copper.
 
-Expose:
+Expose/control:
 
-- PWRKEY control from MCU;
-- hardware power/load switch or regulator enable;
-- UART TX/RX;
-- modem status/network status if available;
+- PWRKEY;
+- hardware load switch/regulator enable;
+- UART TX/RX through 1.8-V/3.3-V translation;
+- modem status if useful;
 - SIM/eSIM interface;
-- antenna connector plus ESD network and RF keep-out.
+- antenna connector and RF keep-out.
 
-The board must be able to hard power-cycle the modem when the AT interface becomes unrecoverable.
+The main board must be able to recover from an unresponsive modem, while normal shutdown remains graceful before VBAT removal.
 
-## Vibration — LIS2DW12
+## RS-485 field bus
 
-Prototype address assumes SA0=1 / I2C address 0x19. WHO_AM_I is checked before configuration.
+Use a half-duplex RS-485 transceiver and Modbus RTU master on the STM32.
 
-Current firmware configures 800 Hz high-performance acquisition. The sensor must be mechanically coupled to the hive. Do not place it only on the main enclosure if that enclosure is foam/tape isolated from the hive.
+Main-unit cable entry should include:
 
-Recommended physical implementation:
+- RS-485 TVS such as SM712-class protection;
+- deliberate termination and bias arrangement;
+- connector/chassis strategy that does not route surge current through sensitive analog ground;
+- test points for A/B and transceiver enable.
 
-- 10-20 mm rigid sensor daughterboard;
-- two mounting holes or a stiff bonded mechanical interface;
-- short cable/FPC to main PCB;
-- defined orientation marking;
-- repeatable mounting position across hives.
+Start with conservative baud rate. A 5-m cable does not require high speed for T/RH and vibration telemetry.
 
-Mechanical repeatability is part of the measurement system.
+### Ready-made T/RH probe
 
-## Temperature/RH — SHT40
+Use a commercial RS-485/Modbus temperature/RH probe when it passes:
 
-I2C address 0x44. The firmware uses high-precision command 0xFD and validates both CRC bytes.
+- register-map verification;
+- accuracy/response test against a reference SHT40;
+- condensation test;
+- propolis/bee-contact protection review;
+- power-cycle and brownout behavior test.
 
-Placement rules:
+The low-cost probe in `hardware/BOM.csv` is a validation candidate, not yet an approved production part.
 
-- expose sensor to hive air but protect it from direct bee contact, propolis and liquid water;
-- isolate it thermally from the modem/regulator/main PCB;
-- avoid a sealed enclosure around the sensor;
-- use a replaceable small sensor board if contamination is expected.
+### Ready-made vibration probe
 
-## Acoustic — TDK T5838
+The product should not accept a vibration sensor that exposes only one aggregate RMS/velocity value.
 
-Use PDM into an STM32-compatible digital microphone input. Acoustic port design matters: use a protected acoustic vent/membrane and avoid placing the microphone behind thick enclosure walls.
+Preferred information:
 
-Production firmware should use DMA ping-pong buffers. Raw audio should not be transmitted continuously; only features and event clips are retained.
+- raw acceleration windows; or
+- dominant/spectral frequencies with amplitudes; or
+- configurable band energies; or
+- at minimum dominant frequency plus RMS/peak-type metrics.
+
+Validate the commercial probe side-by-side with the LIS2DW12 reference hardware on the same mechanical location.
+
+Mechanical repeatability remains part of the measurement system: mounting orientation, stiffness and position must be documented.
+
+## Acoustic path — analog over cable
+
+Audio does not use RS-485.
+
+The microphone sits near/in the hive and is amplified locally. The preamp output then travels over the shielded cable to the main-unit ADC.
+
+Preferred prototype topology:
+
+```text
+analog microphone -> low-noise preamp -> shielded pair -> anti-alias filter -> STM32 ADC/DMA
+```
+
+Do not run a raw microphone capsule signal 5 m before amplification.
+
+If single-ended audio shows LTE/switcher pickup, migrate the cable pair to a balanced line driver/receiver while keeping the microphone/preamp local.
+
+The microphone acoustic port must be protected against liquid water/contamination without sealing away the hive sound.
+
+## External cable
+
+Initial target: shielded 6-conductor / three-pair cable, 5 m maximum design length.
+
+Suggested pair allocation:
+
+- pair 1: RS485-A / RS485-B;
+- pair 2: +12V_SENSOR / GND;
+- pair 3: AUDIO / AUDIO_RETURN, or AUDIO+ / AUDIO- if balanced;
+- shield: EMC/chassis termination at the main unit, with footprints/options to tune the final strategy during testing.
+
+Use a sealed connector; exact M8/M12 vs automotive sealed connector remains TBD until cable OD/current/assembly cost are frozen.
 
 ## Local flash
 
-16-32 MB QSPI NOR is sufficient for telemetry queue, crash logs and a useful amount of event data. Partition concept:
+A 128-Mbit QSPI NOR is adequate for telemetry queue, logs and event clips. The low-cost BY25Q128 candidate must be validated against the known W25Q128 reference before production selection.
 
-- 10% metadata/config/logs;
-- 20% telemetry store-and-forward queue;
-- 70% circular event/raw-data storage.
+Recommended partition concept:
 
-Add CRC per record and a monotonic sequence number so power loss cannot corrupt the queue.
+- metadata/config/logs;
+- telemetry store-and-forward queue;
+- circular event/audio storage.
+
+Each record should include CRC and monotonic sequence metadata so unexpected power loss cannot silently corrupt the queue.
 
 ## Power system
 
-Recommended field architecture:
+Keep a **1S LiFePO4** battery as the main energy store.
 
 ```text
-solar panel -> charger/power-path -> LiFePO4 battery
-                                |-> 3.3 V low-Iq rail -> STM32 + sensors
-                                +-> modem rail -> SIM7672E
+solar panel -> charger/power path -> 1S LiFePO4
+                                |-> 3.3 V low-Iq -> STM32 + flash + logic
+                                |-> 3.8 V high-current -> SIM7672E
+                                +-> switched 12 V boost -> RS-485 probes
 ```
 
-LiFePO4 is preferred for outdoor cycle life and thermal safety. Final panel/battery size must be calculated from measured LTE attach/upload energy at the target apiary, not modem datasheet idle current.
+The 12-V rail exists only for external field probes. It should normally be disabled when probes can tolerate duty-cycled operation.
+
+Do not assume duty cycling is compatible with every vibration probe: if the selected unit needs continuous internal sampling/spectral estimation, include its continuous power in the winter solar budget.
+
+Final battery and panel size must be based on measured:
+
+- LTE attach/upload energy;
+- sensor/probe consumption and warm-up;
+- audio acquisition duty cycle;
+- converter efficiency at actual load;
+- winter solar availability at the target installation.
 
 ## Environmental protection
 
 - main enclosure: target IP65/IP67;
-- conformal coat main PCB, excluding microphone/SHT40 sensing areas, RF connectors and required contacts;
-- TVS on external power and long sensor cables;
-- reverse-polarity and input surge protection;
-- hydrophobic vent to reduce condensation pressure cycles;
-- antenna outside conductive enclosures.
+- external probes: target IP65/IP67 or protected mounting;
+- conformal coat main PCB except connectors/test contacts where inappropriate;
+- TVS at external power/data entry;
+- reverse-polarity/input protection;
+- hydrophobic enclosure vent where needed;
+- antenna outside conductive enclosure;
+- strain relief on the 5-m field cable.
 
 ## PCB bring-up test points
 
-Mandatory pads:
+Mandatory pads for the product-v2 main board:
 
-- 3V3, modem VBAT, battery input, ground;
+- battery, 3V3, 3V8 modem, switched 12V sensor rail, GND;
 - SWDIO/SWCLK/NRST;
-- UART modem TX/RX;
-- I2C SDA/SCL;
-- PWRKEY/modem enable;
-- microphone clock/data;
-- QSPI signals on first revision where space allows.
+- modem UART TX/RX;
+- RS485 TX/RX direction logic and A/B near transceiver;
+- modem PWRKEY/load-switch control;
+- audio input after cable receiver/preamp interface;
+- QSPI signals on the first revision where practical.
+
+## Costing
+
+See `hardware/BOM.csv` and `hardware/COSTING.md`. Low-cost marketplace probes remain `VALIDATE` until they pass electrical, mechanical and field-data checks.
